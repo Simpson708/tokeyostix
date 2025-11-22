@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI eBook Writing Assistant</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // ===== PASSWORD CONFIGURATION =====
+        // Add or modify passwords here
+        const VALID_PASSWORDS = {
+            'admin2025': 'Admin User',
+            'client123': 'Client Access',
+            'writer456': 'Writer Access',
+            'demo789': 'Demo User'
+            // Add more passwords in the format: 'password': 'User Description'
+        };
+        // ===================================
+        
+        // Lucide Icons as inline SVG components
+        const BookOpen = () => (
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+        );
+        
+        const Lock = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+        );
+        
+        const Copy = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+        );
+        
+        const Check = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        );
+        
+        const ChevronDown = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        );
+        
+        const ChevronUp = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="18 15 12 9 6 15"/>
+            </svg>
+        );
+        
+        const LogOut = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+        );
+        
+        const FileText = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+        );
+        
+        const Lightbulb = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="9" y1="18" x2="15" y2="18"/>
+                <line x1="10" y1="22" x2="14" y2="22"/>
+                <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+            </svg>
+        );
+        
+        const Layout = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+        );
+        
+        const Edit3 = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+        );
+
+        // Password Screen Component
+        function PasswordScreen({ onAuthenticate }) {
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [isShaking, setIsShaking] = useState(false);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                
+                if (VALID_PASSWORDS[password]) {
+                    // Store authentication in session
+                    sessionStorage.setItem('ebookAppAuth', password);
+                    sessionStorage.setItem('ebookAppUser', VALID_PASSWORDS[password]);
+                    onAuthenticate(password, VALID_PASSWORDS[password]);
+                } else {
+                    setError('Invalid password. Please try again.');
+                    setIsShaking(true);
+                    setTimeout(() => setIsShaking(false), 500);
+                    setPassword('');
+                }
+            };
+
+            return (
+                <div style={{ 
+                    minHeight: '100vh', 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div style={{ 
+                        background: 'white', 
+                        borderRadius: '16px', 
+                        padding: '50px 40px',
+                        maxWidth: '450px',
+                        width: '100%',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                        animation: isShaking ? 'shake 0.5s' : 'none'
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                            <div style={{ color: '#667eea', marginBottom: '20px' }}>
+                                <Lock />
+                            </div>
+                            <h1 style={{ fontSize: '28px', marginBottom: '10px', color: '#1a1a1a' }}>
+                                Protected Access
+                            </h1>
+                            <p style={{ color: '#666', fontSize: '16px' }}>
+                                Enter your password to access the AI eBook Writing Assistant
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '8px', 
+                                    fontWeight: '600',
+                                    color: '#333',
+                                    fontSize: '14px'
+                                }}>
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        setError('');
+                                    }}
+                                    placeholder="Enter your password"
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '14px', 
+                                        border: error ? '2px solid #ef4444' : '2px solid #e0e0e0',
+                                        borderRadius: '8px', 
+                                        fontSize: '16px',
+                                        outline: 'none'
+                                    }}
+                                    autoFocus
+                                />
+                                {error && (
+                                    <p style={{ 
+                                        color: '#ef4444', 
+                                        fontSize: '14px', 
+                                        marginTop: '8px',
+                                        margin: '8px 0 0 0'
+                                    }}>
+                                        {error}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                style={{ 
+                                    width: '100%',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    color: 'white',
+                                    padding: '16px',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s'
+                                }}
+                                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+                            >
+                                Access App
+                            </button>
+                        </form>
+
+                        <div style={{ 
+                            marginTop: '30px', 
+                            paddingTop: '20px', 
+                            borderTop: '1px solid #e0e0e0',
+                            textAlign: 'center'
+                        }}>
+                            <p style={{ fontSize: '13px', color: '#999' }}>
+                                🔒 Your session is secure and private
+                            </p>
+                        </div>
+                    </div>
+
+                    <style>{`
+                        @keyframes shake {
+                            0%, 100% { transform: translateX(0); }
+                            25% { transform: translateX(-10px); }
+                            75% { transform: translateX(10px); }
+                        }
+                    `}</style>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function EbookWriterApp() {
+            const [bookInfo, setBookInfo] = useState({
+                topic: '',
+                audience: '',
+                mainBenefit: '',
+                chapters: '7',
+                tone: 'conversational'
+            });
+            
+            const [copiedId, setCopiedId] = useState(null);
+            const [expandedSections, setExpandedSections] = useState({});
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [currentUser, setCurrentUser] = useState('');
+
+            useEffect(() => {
+                // Check if already authenticated
+                const storedAuth = sessionStorage.getItem('ebookAppAuth');
+                const storedUser = sessionStorage.getItem('ebookAppUser');
+                if (storedAuth && VALID_PASSWORDS[storedAuth]) {
+                    setIsAuthenticated(true);
+                    setCurrentUser(storedUser);
+                }
+            }, []);
+
+            const handleAuthenticate = (password, userName) => {
+                setIsAuthenticated(true);
+                setCurrentUser(userName);
+            };
+
+            const handleLogout = () => {
+                sessionStorage.removeItem('ebookAppAuth');
+                sessionStorage.removeItem('ebookAppUser');
+                setIsAuthenticated(false);
+                setCurrentUser('');
+            };
+
+            const generatePrompt = (type) => {
+                const prompts = {
+                    outline: `I want to write an eBook about ${bookInfo.topic || '[YOUR TOPIC]'}.
+
+Target audience: ${bookInfo.audience || '[YOUR AUDIENCE]'}
+Main benefit/promise: ${bookInfo.mainBenefit || '[MAIN BENEFIT]'}
+Number of chapters: ${bookInfo.chapters}
+Tone: ${bookInfo.tone}
+
+Create a detailed outline including:
+- A compelling book title (3 options)
+- A subtitle that explains the benefit
+- ${bookInfo.chapters} chapter titles with 3-4 key points per chapter
+- Estimated word count for each chapter (aim for 2,000-3,000 words per chapter)
+
+Format this as a clear, organized outline I can follow.`,
+
+                    intro: `I'm writing an eBook titled: [PASTE YOUR CHOSEN TITLE]
+
+Topic: ${bookInfo.topic || '[YOUR TOPIC]'}
+Target audience: ${bookInfo.audience || '[YOUR AUDIENCE]'}
+Main promise: ${bookInfo.mainBenefit || '[MAIN BENEFIT]'}
+
+Write a compelling introduction (800-1,000 words) that:
+- Hooks the reader with a relatable problem or scenario
+- Establishes my credibility (you can make this generic, I'll personalize it)
+- Explains what they'll learn and why it matters
+- Sets expectations for the journey ahead
+- Ends with excitement about diving into Chapter 1
+
+Tone: ${bookInfo.tone} and engaging`,
+
+                    chapter: `I'm writing Chapter [NUMBER]: [CHAPTER TITLE] for my eBook about ${bookInfo.topic || '[YOUR TOPIC]'}.
+
+Target audience: ${bookInfo.audience || '[YOUR AUDIENCE]'}
+Key points to cover: [PASTE KEY POINTS FROM YOUR OUTLINE]
+
+Write this chapter (2,000-2,500 words) with:
+- An engaging opening that connects to the previous chapter
+- Clear subheadings for each main point
+- Practical examples and actionable advice
+- A brief summary at the end
+- A transition to the next chapter
+
+Tone: ${bookInfo.tone}, helpful, and easy to understand`,
+
+                    conclusion: `I'm writing the conclusion for my eBook about ${bookInfo.topic || '[YOUR TOPIC]'}.
+
+Target audience: ${bookInfo.audience || '[YOUR AUDIENCE]'}
+Main chapters covered: [LIST YOUR CHAPTER TITLES]
+
+Write a powerful conclusion (600-800 words) that:
+- Summarizes the key takeaways without repeating content
+- Reinforces the transformation the reader has achieved
+- Provides next steps or action items
+- Ends with an inspiring final message
+- Includes a subtle call-to-action (optional: mention your website, service, or next resource)
+
+Tone: ${bookInfo.tone} and motivating`
+                };
+
+                return prompts[type];
+            };
+
+            const handleCopy = (id, text) => {
+                navigator.clipboard.writeText(text);
+                setCopiedId(id);
+                setTimeout(() => setCopiedId(null), 2000);
+            };
+
+            const toggleSection = (id) => {
+                setExpandedSections(prev => ({
+                    ...prev,
+                    [id]: !prev[id]
+                }));
+            };
+
+            if (!isAuthenticated) {
+                return <PasswordScreen onAuthenticate={handleAuthenticate} />;
+            }
+
+            return (
+                <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '40px 20px' }}>
+                    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                        {/* Header with Logout */}
+                        <div style={{ textAlign: 'center', marginBottom: '40px', color: 'white', position: 'relative' }}>
+                            <button
+                                onClick={handleLogout}
+                                style={{
+                                    position: 'absolute',
+                                    top: '0',
+                                    right: '0',
+                                    background: 'rgba(255,255,255,0.2)',
+                                    color: 'white',
+                                    border: '2px solid rgba(255,255,255,0.3)',
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                <LogOut />
+                                Logout
+                            </button>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '12px' }}>
+                                <BookOpen />
+                                <h1 style={{ fontSize: '36px', margin: 0 }}>AI eBook Writing Assistant</h1>
+                            </div>
+                            <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '8px' }}>
+                                Generate custom prompts for Claude.ai to write your complete eBook
+                            </p>
+                            <p style={{ fontSize: '14px', opacity: 0.8 }}>
+                                Welcome, {currentUser}
+                            </p>
+                        </div>
+
+                        <div style={{ background: 'white', borderRadius: '12px', padding: '30px', marginBottom: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+                            <h2 style={{ marginBottom: '20px', color: '#1a1a1a' }}>📝 Your eBook Details</h2>
+                            
+                            <div style={{ display: 'grid', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                        What's your eBook topic?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={bookInfo.topic}
+                                        onChange={(e) => setBookInfo({ ...bookInfo, topic: e.target.value })}
+                                        placeholder="e.g., Starting a successful blog, Meal prep for busy parents"
+                                        style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '16px' }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                        Who's your target audience?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={bookInfo.audience}
+                                        onChange={(e) => setBookInfo({ ...bookInfo, audience: e.target.value })}
+                                        placeholder="e.g., Complete beginners with no tech experience"
+                                        style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '16px' }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                        What's the main benefit/promise?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={bookInfo.mainBenefit}
+                                        onChange={(e) => setBookInfo({ ...bookInfo, mainBenefit: e.target.value })}
+                                        placeholder="e.g., Create a profitable blog in 30 days"
+                                        style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '16px' }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                            Number of chapters
+                                        </label>
+                                        <select
+                                            value={bookInfo.chapters}
+                                            onChange={(e) => setBookInfo({ ...bookInfo, chapters: e.target.value })}
+                                            style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '16px' }}
+                                        >
+                                            {[5, 6, 7, 8, 9, 10, 12, 15].map(num => (
+                                                <option key={num} value={num}>{num} chapters</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                            Writing tone
+                                        </label>
+                                        <select
+                                            value={bookInfo.tone}
+                                            onChange={(e) => setBookInfo({ ...bookInfo, tone: e.target.value })}
+                                            style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '16px' }}
+                                        >
+                                            <option value="conversational">Conversational</option>
+                                            <option value="professional">Professional</option>
+                                            <option value="friendly">Friendly</option>
+                                            <option value="authoritative">Authoritative</option>
+                                            <option value="inspirational">Inspirational</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+                            <h2 style={{ marginBottom: '25px', color: '#1a1a1a' }}>🚀 Your Writing Workflow</h2>
+
+                            {[
+                                { id: 'outline', title: 'Step 1: Generate Your Book Outline', icon: FileText, description: 'This prompt creates your complete eBook structure with chapter titles and key points.', next: 'Paste this into Claude.ai, review the outline, choose your favorite title, and save the outline to reference later.' },
+                                { id: 'intro', title: 'Step 2: Write Your Introduction', icon: Lightbulb, description: 'Create a compelling introduction that hooks readers and sets up your book.', next: 'Copy the result to your document. Personalize the credibility section with your own story and experience.' },
+                                { id: 'chapter', title: 'Step 3: Write Each Chapter', icon: Layout, description: 'Use this prompt for each chapter. Just update the chapter number, title, and key points from your outline.', next: `Write one chapter per day. Copy each to your document, read through, and add personal examples or stories. Repeat for all ${bookInfo.chapters} chapters.` },
+                                { id: 'conclusion', title: 'Step 4: Write Your Conclusion', icon: Edit3, description: 'Wrap up your book with a powerful conclusion that inspires action.', next: "You're Done! You now have a complete first draft of your eBook. Next steps: Read through, edit for your voice, add images/formatting, and publish!", final: true }
+                            ].map((step) => {
+                                const Icon = step.icon;
+                                return (
+                                    <div key={step.id} style={{ marginBottom: '20px', border: '2px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+                                        <button
+                                            onClick={() => toggleSection(step.id)}
+                                            style={{ width: '100%', padding: '20px', background: '#f8f9ff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <Icon />
+                                                <span style={{ fontSize: '18px', fontWeight: '600', color: '#1a1a1a' }}>{step.title}</span>
+                                            </div>
+                                            {expandedSections[step.id] ? <ChevronUp /> : <ChevronDown />}
+                                        </button>
+                                        
+                                        {expandedSections[step.id] && (
+                                            <div style={{ padding: '20px', background: 'white' }}>
+                                                <p style={{ marginBottom: '15px', color: '#555', lineHeight: '1.6' }}>
+                                                    {step.description}
+                                                </p>
+                                                <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '6px', marginBottom: '15px', position: 'relative' }}>
+                                                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '14px', margin: 0, lineHeight: '1.6' }}>
+                                                        {generatePrompt(step.id)}
+                                                    </pre>
+                                                    <button
+                                                        onClick={() => handleCopy(step.id, generatePrompt(step.id))}
+                                                        style={{ position: 'absolute', top: '15px', right: '15px', background: copiedId === step.id ? '#10b981' : '#667eea', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}
+                                                    >
+                                                        {copiedId === step.id ? <Check /> : <Copy />}
+                                                        {copiedId === step.id ? 'Copied!' : 'Copy'}
+                                                    </button>
+                                                </div>
+                                                <div style={{ background: step.final ? '#e8f5e9' : '#fff4e6', padding: '15px', borderRadius: '6px', fontSize: '14px', color: '#555' }}>
+                                                    <strong>{step.final ? '🎉' : '💡'} {step.final ? '' : 'Next:'}</strong> {step.next}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '25px', marginTop: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+                            <h3 style={{ marginBottom: '15px', color: '#1a1a1a' }}>📋 How to Use This Tool</h3>
+                            <ol style={{ lineHeight: '1.8', color: '#555', paddingLeft: '20px' }}>
+                                <li>Fill in your eBook details at the top</li>
+                                <li>Click each step to expand and see the custom prompt</li>
+                                <li>Click "Copy" to copy the prompt to your clipboard</li>
+                                <li>Paste into Claude.ai and get your content</li>
+                                <li>Copy Claude's response to your document (Google Docs, Word, etc.)</li>
+                                <li>Repeat for each section until your eBook is complete</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<EbookWriterApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
